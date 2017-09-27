@@ -1,0 +1,518 @@
+"""Finish all TODO items in this file to complete the isolation project, then
+test your agent's strength against a set of known agents using tournament.py
+and include the results in your report.
+"""
+import random
+import numpy as np
+
+
+class SearchTimeout(Exception):
+    """Subclass base exception for code clarity. """
+    pass
+
+
+def move_count_heuristic(game, player):
+    # Collect the number of moves for each player
+    our_moves = len(game.get_legal_moves(player))
+    their_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
+    # Manual testing indicated good performance weighing oponent moves with a multiplier between 1.0 and 2.0
+    # Randomly sample values between these bounds
+    vals = np.random.uniform(low=1.0, high=2.0, size=(10,))
+    ret_sum = 0
+    # For each sub-sample, add the score to the sum
+    for val in vals:
+        ret_sum += our_moves - (val*their_moves)
+
+    # Return the average score for all sub-samples
+    return ret_sum/len(vals)
+
+
+def opposite_opponent_heuristic(game, player):
+    # Collect the location for each player
+    our_loc = game.get_player_location(player)
+    their_loc = game.get_player_location(game.get_opponent(player))
+
+    # Calculate the position opposite the opponent's position (mirroring the opponent) on the game board
+    x_opposite_opponent = ((1 - (their_loc[0] / game.width)) * game.width) + 1
+    y_opposite_opponent = ((1 - (their_loc[1] / game.width)) * game.width) + 1
+
+    # Calculate the component difference between our location and the move mirroring the opponent
+    x_dif = abs(our_loc[0] - x_opposite_opponent)
+    y_dif = abs(our_loc[1] - y_opposite_opponent)
+
+    # Invert the distance to incentivise positions closer to the move mirroring the opponent
+    dist_weight = (1-((x_dif * y_dif)/(game.width-1 * game.width-2)))
+
+    # Manual testing indicated good performance weighing the distance function with a multiplier between 5.0 and 50.0
+    # Randomly sample values between these bounds
+    vals = np.random.uniform(low=5.0, high=50.0, size=(10,))
+    ret_sum = 0
+    # For each sub-sample, add the score to the sum
+    for val in vals:
+        ret_sum += dist_weight*val
+
+    # Return the average score for all sub-samples
+    return ret_sum/len(vals)
+
+
+def custom_score(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    This should be the best heuristic function for your project submission.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+    return move_count_heuristic(game, player)
+
+
+def custom_score_2(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+    return opposite_opponent_heuristic(game, player)
+
+
+def custom_score_3(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    # Collect the location for each player
+    our_loc = game.get_player_location(player)
+    their_loc = game.get_player_location(game.get_opponent(player))
+
+    # Calculate the position opposite the opponent's position (mirroring the opponent) on the game board
+    x_opposite_opponent = ((1 - (their_loc[0] / game.width)) * game.width) + 1
+    y_opposite_opponent = ((1 - (their_loc[1] / game.width)) * game.width) + 1
+
+    # If the position for the move mirroring the opponent is blank, incentivise making this move
+    if (x_opposite_opponent, y_opposite_opponent) in game.get_blank_spaces():
+        return opposite_opponent_heuristic(game, player)
+
+    # Otherwise, optimise for the greatest amount of moves
+    return move_count_heuristic(game, player)
+
+
+#                         *************************
+#                              Playing Matches
+#                         *************************
+#  Match #   Opponent    AB_Improved   AB_Custom   AB_Custom_2  AB_Custom_3
+#                         Won | Lost   Won | Lost   Won | Lost   Won | Lost
+#     1       Random       4  |   6     3  |   7     3  |   7     3  |   7
+#     2       MM_Open      7  |   3     8  |   2     6  |   4     7  |   3
+#     3      MM_Center     9  |   1     7  |   3     7  |   3     8  |   2
+#     4     MM_Improved    7  |   3     7  |   3     4  |   6     7  |   3
+#     5       AB_Open      4  |   6     5  |   5     6  |   4     6  |   4
+#     6      AB_Center     5  |   5     7  |   3     7  |   3     7  |   3
+#     7     AB_Improved    4  |   6     4  |   6     6  |   4     6  |   4
+# --------------------------------------------------------------------------
+#            Win Rate:      57.1%        58.6%        55.7%        62.9%
+
+
+class IsolationPlayer:
+    """Base class for minimax and alphabeta agents -- this class is never
+    constructed or tested directly.
+
+    ********************  DO NOT MODIFY THIS CLASS  ********************
+
+    Parameters
+    ----------
+    search_depth : int (optional)
+        A strictly positive integer (i.e., 1, 2, 3,...) for the number of
+        layers in the game tree to explore for fixed-depth search. (i.e., a
+        depth of one (1) would only explore the immediate sucessors of the
+        current state.)
+
+    score_fn : callable (optional)
+        A function to use for heuristic evaluation of game states.
+
+    timeout : float (optional)
+        Time remaining (in milliseconds) when search is aborted. Should be a
+        positive value large enough to allow the function to return before the
+        timer expires.
+    """
+    def __init__(self, search_depth=3, score_fn=custom_score, timeout=10.):
+        self.search_depth = search_depth
+        self.score = score_fn
+        self.time_left = None
+        self.TIMER_THRESHOLD = timeout
+
+
+class MinimaxPlayer(IsolationPlayer):
+    """Game-playing agent that chooses a move using depth-limited minimax
+    search. You must finish and test this player to make sure it properly uses
+    minimax to return a good move before the search time limit expires.
+    """
+
+    def get_move(self, game, time_left):
+        """Search for the best move from the available legal moves and return a
+        result before the time limit expires.
+
+        **************  YOU DO NOT NEED TO MODIFY THIS FUNCTION  *************
+
+        For fixed-depth search, this function simply wraps the call to the
+        minimax method, but this method provides a common interface for all
+        Isolation agents, and you will replace it in the AlphaBetaPlayer with
+        iterative deepening search.
+
+        Parameters
+        ----------
+        game : `isolation.Board`
+            An instance of `isolation.Board` encoding the current state of the
+            game (e.g., player locations and blocked cells).
+
+        time_left : callable
+            A function that returns the number of milliseconds left in the
+            current turn. Returning with any less than 0 ms remaining forfeits
+            the game.
+
+        Returns
+        -------
+        (int, int)
+            Board coordinates corresponding to a legal move; may return
+            (-1, -1) if there are no available legal moves.
+        """
+        self.time_left = time_left
+
+        # Initialize the best move so that this function returns something
+        # in case the search fails due to timeout
+        best_move = (-1, -1)
+
+        try:
+            # The try/except block will automatically catch the exception
+            # raised when the timer is about to expire.
+            return self.minimax(game, self.search_depth)
+
+        except SearchTimeout:
+            pass  # Handle any actions required after timeout as needed
+
+        # Return the best move from the last completed search iteration
+        return best_move
+
+    def minimax(self, game, depth):
+        """Implement depth-limited minimax search algorithm as described in
+        the lectures.
+
+        This should be a modified version of MINIMAX-DECISION in the AIMA text.
+        https://github.com/aimacode/aima-pseudocode/blob/master/md/Minimax-Decision.md
+
+        **********************************************************************
+            You MAY add additional methods to this class, or define helper
+                 functions to implement the required functionality.
+        **********************************************************************
+
+        Parameters
+        ----------
+        game : isolation.Board
+            An instance of the Isolation game `Board` class representing the
+            current game state
+
+        depth : int
+            Depth is an integer representing the maximum number of plies to
+            search in the game tree before aborting
+
+        Returns
+        -------
+        (int, int)
+            The board coordinates of the best move found in the current search;
+            (-1, -1) if there are no legal moves
+
+        Notes
+        -----
+            (1) You MUST use the `self.score()` method for board evaluation
+                to pass the project tests; you cannot call any other evaluation
+                function directly.
+
+            (2) If you use any helper functions (e.g., as shown in the AIMA
+                pseudocode) then you must copy the timer check into the top of
+                each helper function or else your agent will timeout during
+                testing.
+        """
+        # Check to ensure agent handles timeout
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        # Keep track of the best score, initialized low to track the maximum value
+        best_score = float('-inf')
+        # Keep track of the best move
+        best_move = (-1, -1)
+        # For each legal move
+        for m in game.get_legal_moves():
+            # Calculate the score for the current move on the ply
+            v = self.minimax_min_value(game.forecast_move(m), depth)
+            # Keep track of the best score and the corresponding move for the ply
+            if v > best_score:
+                best_score = v
+                best_move = m
+        return best_move
+
+    def minimax_min_value(self, game, depth):
+        # Check to ensure agent handles timeout
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        # When we get to a leaf, evaluate the heuristic
+        if depth == 1:
+            return self.score(game, self)
+
+        # Keep track of the best score, initialized high to track the minimum value
+        best_v = float('inf')
+        # For each legal move
+        for m in game.get_legal_moves():
+            # Advance the game one ply and increment the depth tracker
+            v = self.minimax_max_value(game.forecast_move(m), depth-1)
+            # Keep track of the best score for the ply
+            if v < best_v:
+                best_v = v
+        return best_v
+
+    def minimax_max_value(self, game, depth):
+        # Check to ensure agent handles timeout
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        # When we get to a leaf, evaluate the heuristic
+        if depth == 1:
+            return self.score(game, self)
+
+        # Keep track of the best score, initialized low to track the maximum value
+        best_v = float('-inf')
+        # For each legal move
+        for m in game.get_legal_moves():
+            # Advance the game one ply and increment the depth tracker
+            v = self.minimax_min_value(game.forecast_move(m), depth-1)
+            # Keep track of the best score for the ply
+            if v > best_v:
+                best_v = v
+        return best_v
+
+
+class AlphaBetaPlayer(IsolationPlayer):
+    """Game-playing agent that chooses a move using iterative deepening minimax
+    search with alpha-beta pruning. You must finish and test this player to
+    make sure it returns a good move before the search time limit expires.
+    """
+
+    def get_move(self, game, time_left):
+        """Search for the best move from the available legal moves and return a
+        result before the time limit expires.
+
+        Modify the get_move() method from the MinimaxPlayer class to implement
+        iterative deepening search instead of fixed-depth search.
+
+        **********************************************************************
+        NOTE: If time_left() < 0 when this function returns, the agent will
+              forfeit the game due to timeout. You must return _before_ the
+              timer reaches 0.
+        **********************************************************************
+
+        Parameters
+        ----------
+        game : `isolation.Board`
+            An instance of `isolation.Board` encoding the current state of the
+            game (e.g., player locations and blocked cells).
+
+        time_left : callable
+            A function that returns the number of milliseconds left in the
+            current turn. Returning with any less than 0 ms remaining forfeits
+            the game.
+
+        Returns
+        -------
+        (int, int)
+            Board coordinates corresponding to a legal move; may return
+            (-1, -1) if there are no available legal moves.
+        """
+        self.time_left = time_left
+
+        # Initialize the best move so that this function returns something
+        # in case the search fails due to timeout
+        best_move = (-1, -1)
+
+        # Keep track of the current depth
+        iterative_deepening_depth = 1
+
+        try:
+            # The try/except block will automatically catch the exception
+            # raised when the timer is about to expire.
+            while True:
+            	# Save the best move for the depth level and increment depth
+                best_move = self.alphabeta(game, iterative_deepening_depth)
+                iterative_deepening_depth += 1
+
+        except SearchTimeout:
+            return best_move
+        # Return the best move from the last completed search iteration
+        return best_move
+
+    def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf")):
+        """Implement depth-limited minimax search with alpha-beta pruning as
+        described in the lectures.
+
+        This should be a modified version of ALPHA-BETA-SEARCH in the AIMA text
+        https://github.com/aimacode/aima-pseudocode/blob/master/md/Alpha-Beta-Search.md
+
+        **********************************************************************
+            You MAY add additional methods to this class, or define helper
+                 functions to implement the required functionality.
+        **********************************************************************
+
+        Parameters
+        ----------
+        game : isolation.Board
+            An instance of the Isolation game `Board` class representing the
+            current game state
+
+        depth : int
+            Depth is an integer representing the maximum number of plies to
+            search in the game tree before aborting
+
+        alpha : float
+            Alpha limits the lower bound of search on minimizing layers
+
+        beta : float
+            Beta limits the upper bound of search on maximizing layers
+
+        Returns
+        -------
+        (int, int)
+            The board coordinates of the best move found in the current search;
+            (-1, -1) if there are no legal moves
+
+        Notes
+        -----
+            (1) You MUST use the `self.score()` method for board evaluation
+                to pass the project tests; you cannot call any other evaluation
+                function directly.
+
+            (2) If you use any helper functions (e.g., as shown in the AIMA
+                pseudocode) then you must copy the timer check into the top of
+                each helper function or else your agent will timeout during
+                testing.
+        """
+        # Check to ensure agent handles timeout
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        # Keep track of the best score, initialized low to track the maximum value
+        best_score = float('-inf')
+        # Keep track of the best move
+        best_move = (-1, -1)
+        # For each legal move
+        for m in game.get_legal_moves():
+            # Calculate the score for the current move on the ply
+            v = self.alphabeta_min_value(game.forecast_move(m), depth, alpha, beta)
+            # Keep track of the best score and the corresponding move for the ply
+            if v > best_score:
+                best_score = v
+                best_move = m
+            # Update the alpha value
+            alpha = max(alpha, best_score)
+            # Prune the search tree
+            if best_score >= beta:
+                return best_move
+        return best_move
+
+    def alphabeta_min_value(self, game, depth, alpha, beta):
+        # Check to ensure agent handles timeout
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        # When we get to a leaf, evaluate the heuristic
+        if depth == 1:
+            return self.score(game, self)
+
+        # Keep track of the best score, initialized high to track the minimum value
+        best_v = float('inf')
+        # For each legal move
+        for m in game.get_legal_moves():
+            # Advance the game one ply and increment the depth tracker
+            v = self.alphabeta_max_value(game.forecast_move(m), depth-1, alpha, beta)
+            # Keep track of the best score for the ply
+            if v < best_v:
+                best_v = v
+            # Prune the search tree
+            if best_v <= alpha:
+                return best_v
+            # Update the beta value
+            beta = min(beta, best_v)
+        return best_v
+
+    def alphabeta_max_value(self, game, depth, alpha, beta):
+        # Check to ensure agent handles timeout
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        # When we get to a leaf, evaluate the heuristic
+        if depth == 1:
+            return self.score(game, self)
+
+        # Keep track of the best score, initialized low to track the maximum value
+        best_v = float('-inf')
+        # For each legal move
+        for m in game.get_legal_moves():
+            # Advance the game one ply and increment the depth tracker
+            v = self.alphabeta_min_value(game.forecast_move(m), depth-1, alpha, beta)
+            # Keep track of the best score for the ply
+            if v > best_v:
+                best_v = v
+            # Prune the search tree
+            if best_v >= beta:
+                return best_v
+            # Update the alpha value
+            alpha = max(alpha, best_v)
+        return best_v
