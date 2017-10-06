@@ -1,10 +1,8 @@
 """Estimate the strength rating of a student defined heuristic by competing
 against fixed-depth minimax and alpha-beta search agents in a round-robin
 tournament.
-
 NOTE: All agents are constructed from the student CustomPlayer implementation,
 so any errors present in that class will affect the outcome.
-
 The student agent plays a number of "fair" matches against each test agent.
 The matches are fair because the board is initialized randomly for both
 players, and the players play each match twice -- once as the first player and
@@ -39,7 +37,6 @@ Agent = namedtuple("Agent", ["player", "name"])
 
 def play_round(cpu_agent, test_agents, win_counts, num_matches):
     """Compare the test agents to the cpu agent in "fair" matches.
-
     "Fair" matches use random starting locations and force the agents to
     play as both first and second player to control for advantages resulting
     from choosing better opening moves or having first initiative to move.
@@ -120,7 +117,7 @@ def play_matches(cpu_agents, test_agents, num_matches):
                "increasing the timeout margin for your agent.\n").format(
             total_timeouts))
     if total_forfeits:
-        print(("\nYour ID search forfeited {} games while there were still " +
+        print(("\nYour agents forfeited {} games while there were still " +
                "legal moves available to play.\n").format(total_forfeits))
 
 

@@ -10,16 +10,52 @@ Created on Thu Sep 28 14:04:35 2017
 test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
-import random
 
+import math
 
 class SearchTimeout(Exception):
     """Subclass base exception for code clarity. """
     pass
 
+def distance_from_center(game, player):
+    """
+    Output a score base on the distance between the center and player location
+    
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+    player : hashable
+        One of the objects registered by the game object as a valid player.
+        (i.e., `player` should be either game.__player_1__ or
+        game.__player_2__).
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state
+    """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    
+    # Get the location of the center
+    # taken from center_score
+    w, h = game.width / 2., game.height / 2.
+    y, x = game.get_player_location(player)
+    
+    # distance formula sqrt((Y1 - Y2)**2 + (X1 - X2)**2)
+    distance_from_center = math.sqrt((h - y)**2 + (w - x)**2)
+    
+    return float(distance_from_center)
 
 def custom_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
+    """
+    Checks
+    Calculate the heuristic value of a game state from the point of view
     of the given player.
 
     This should be the best heuristic function for your project submission.
@@ -42,21 +78,32 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    # Heuristic taken from sample_players.py. Own legal moves - Your Opponents legal moves.
+    return distance_from_center(game, player)
+
+
+def run_away(game, player):
+    """
+    Calculate the distance between you and the opponent. Function attempts to
+    keep a distance from the opponent
+    """
     if game.is_loser(player):
         return float("-inf")
 
     if game.is_winner(player):
         return float("inf")
+    
+    # Get players location
+    own_loc = game.get_player_location(player)
+    
+    # Get opponents location
+    opp_loc = game.get_player_location(game.get_opponent(player))
 
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    return float(own_moves - opp_moves)
+    return float(abs(sum(opp_loc) - sum(own_loc)))
 
 
 def custom_score_2(game, player):
-    """Calculate the heuristic value of a game state from the point of view
+    """
+    Calculate the heuristic value of a game state from the point of view
     of the given player.
 
     Note: this function should be called from within a Player instance as
@@ -77,9 +124,24 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
 
+    return run_away(game, player)
+
+
+def square_legal_moves(game, player):
+    """
+    Returns value of own_moves - opp_moves to the second power.
+    """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    
+    return float((own_moves - opp_moves)**2)
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -103,8 +165,7 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    return square_legal_moves(game, player)
 
 
 class IsolationPlayer:
@@ -173,7 +234,12 @@ class MinimaxPlayer(IsolationPlayer):
         self.time_left = time_left
 
         best_move = (-1, -1)
-
+        
+        legal_moves = game.get_legal_moves(game.active_player)
+        # If no best move is found within the search time. Initialize best_move
+        # to first available move to allow the game to be played out without forfeting
+        if len(legal_moves) != 0:
+            best_move = legal_moves[0]
 
         try:
             # The try/except block will automatically catch the exception
@@ -226,6 +292,11 @@ class MinimaxPlayer(IsolationPlayer):
         
         best_score = float('-inf')
         best_move = None
+        
+        # If no best move is found within the search time. Initialize best_move
+        # to first available move to allow the game to be played out without forfeting
+        if len(legal_moves) != 0:
+            best_move = legal_moves[0]
         
         # For loop used to compare current_score with best_score and current_move with best_move.
         # Replaces best_score with current_score if best_score > current_score
@@ -313,47 +384,7 @@ class MinimaxPlayer(IsolationPlayer):
             # Compares if current_score < best_score. Then stores it as the best_score
             if current_score < best_score:
                 best_score = current_score
-        return best_score
-    
-    
-        """
-        # Old code that uses no helper function used within minimax()
-        # Grabs all legal move
-    
-        legal_moves = game.get_legal_moves(game.active_player)
-        
-        if depth == 0:
-            return self.score(game, self), (-1, -1)
-        
-        
-        # Initialize the best move
-        best_move = None
-        
-        # Determines if the active player is attempting to minimize or maximize their score base on flag on max_min
-        if max_min:
-            # searches for best maximimum score
-            best_score = float("-inf")
-            for move in legal_moves:
-                # Stores current state of game to be return as next state 
-                next_state = game.forecast_move(move)
-                current_score, _ = self.minimax(next_state, depth - 1, False)
-                # if current_score is currently greater then current best_score replace both best_score and best_move
-                if current_score > best_score:
-                    best_score, best_move = current_score, move
-        else:
-            # searches for best minimum score
-            best_score = float("inf")
-            for move in legal_moves:
-                # Stores current state of game to be return as next state 
-                next_state = game.forecast_move(move)
-                current_score, _ = self.minimax(next_state, depth - 1, True)
-                # if current_score is currently less then current best_score replace both best_score and best_move
-                if current_score < best_score:
-                    best_score, best_move = current_score, move
-        return best_score, best_move
-    """
-
-   
+        return best_score   
 
 
 class AlphaBetaPlayer(IsolationPlayer):
@@ -395,14 +426,19 @@ class AlphaBetaPlayer(IsolationPlayer):
         self.time_left = time_left
 
         # Initialize the best move so that this function returns something
-        # in case the search fails due to timeout
-        legal_moves_list = game.get_legal_moves(game.active_player)
         best_move = (-1, -1)
-        #initialize the best move to the first available legal moves to avoid forfeiting
-        if len(legal_moves_list) != 0:
-            best_move = legal_moves_list[0]
+        
+        # Stores legal moves into a list
+        legal_moves = game.get_legal_moves(game.active_player)
+        
+        # If no best move is found within the search time. Initialize best_move
+        # to first available move to allow the game to be played out without forfeting
+        if len(legal_moves) != 0:
+            best_move = legal_moves[0]
+            
         # The try/except block will automatically catch the exception
         # raised when the timer is about to expire.
+        # Iterative deepening
         try:
             #Continue to apply the search while increasing the depth until time runs out
             for deepening_depth in range(0, 9999):
@@ -467,8 +503,13 @@ class AlphaBetaPlayer(IsolationPlayer):
         legal_moves = game.get_legal_moves(game.active_player)
         
         best_score = float('-inf')
-        best_move = None
+        best_move = (-1, -1)
         
+        # If no best move is found within the search time. Initialize best_move
+        # to allow the game to be played out without forfeting
+        if len(legal_moves) != 0:
+            best_move = legal_moves[0]
+            
         # For loop used to compare current_score with best_score and current_move with best_move.
         # Replaces best_score with current_score if best_score > current_score
         # Replaces best_move with current_move if best_move > current_move
@@ -477,8 +518,9 @@ class AlphaBetaPlayer(IsolationPlayer):
             if current_score > best_score:
                 best_score = current_score
                 best_move = current_move
-            elif current_score > alpha:
-                best_score = current_score
+            
+            # Update alpha for pruning
+            alpha = max(alpha, best_score)
                         
         return best_move
         
@@ -504,65 +546,50 @@ class AlphaBetaPlayer(IsolationPlayer):
         else:
             return False
         
-            
-    def max_value(self, state, depth, alpha, beta):
+    def max_value(self, gameState, depth, alpha, beta):
+        """ 
+        This function uses alpha-beta pruning to find the maximum value max can 
+        get or else it returns -1 to indicate game has ended
         """
-        Function is used to determine the best maximum value and returns it
-        In addition it will prune out any unneccasary branches in the search tree
-        """
-         # Timer used to stop search for time efficiency
+        # timer check
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
+        
+        # Terminal test
+        if self.terminal_test(gameState, depth):
+            return self.score(gameState, gameState.active_player)
+        legal_moves = gameState.get_legal_moves(gameState.active_player)
+        best_score = float("-inf")  
+        for move in legal_moves:
+            best_score = max(best_score, self.min_value(gameState.forecast_move(move), depth-1, alpha, beta))
+            # Pruning. best_score is compare to beta to see if it is greater then or equal to beta
+            if best_score >= beta:
+                return best_score
+            # Finds the largest value between alpha and best_score
+            alpha = max(alpha, best_score)
+        return best_score    
             
-        # Calls terminal test to determine if game is over
-        if self.terminal_test(state, depth):
-            # Returns a current state
-            return self.score(state, state.active_player)
+    def min_value(self, gameState, depth, alpha, beta):
+        """ 
+        This function uses alpha-beta pruning to find the minimum value min can
+        get or else it returns -1 to indicate game has ended.
+        """
+        # timer check
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
         
-        # Predefine best score as negative infinity
-        best_score = None 
-        # Stores legal moves into a list
-        legal_moves = state.get_legal_moves(state.active_player)
-        
-        # For loop used to find the best maximum value move base on the opposing players
-        # best mimumum value moves. Mutually recursive loop.
-        for current_move in legal_moves:
-            current_score = self.min_value(state.forecast_move(current_move), depth-1, alpha, beta)
-            # Compares if current_score > best_score. Then stores it as the best_score
-            if current_score >= beta:
-                best_score = current_score
-            elif alpha > current_score:
-                best_score = current_score
-                
+        # Terminal Test
+        if self.terminal_test(gameState, depth):
+            return self.score(gameState, gameState.inactive_player)
+        legal_moves = gameState.get_legal_moves(gameState.active_player)
+        best_score = float("inf")
+        for move in legal_moves:
+            best_score = min(best_score, self.max_value(gameState.forecast_move(move), depth-1, alpha, beta))
+            # Pruning. Best_score is compare to alpha to see if it is less then  or equal alpha.
+            if best_score <= alpha:
+                return best_score
+            # Finds the minimum value between beta and best_score
+            beta = min(beta, best_score)
         return best_score
     
-    def min_value(self, state, depth, alpha, beta):
-        """
-        Function is used to determine the best minumum value and returns it
-        """
-         # Timer used to stop search for time efficiency
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise SearchTimeout()
-        
-         # Calls terminal test to determine if game is over
-        if self.terminal_test(state, depth):
-            # Returns a current state
-            return self.score(state, state.inactive_player)
-        
-        # Predefine best score as infinity
-        best_score = None
-        
-        # Stores legal moves into a list
-        legal_moves = state.get_legal_moves(state.active_player)
-        
-        # For loop used to find the minumum value move base on the opposing players
-        # maximum value moves. Mutually recursive loop.
-        for current_move in legal_moves:
-            current_score = self.max_value(state.forecast_move(current_move), depth-1, alpha, beta)
-            # Compares if current_score =< alpha. Then stores it as the best_score
-            if current_score <= alpha:
-                best_score = current_score
-            elif beta < current_score:
-                best_score = current_score
-                    
-        return best_score
+    
