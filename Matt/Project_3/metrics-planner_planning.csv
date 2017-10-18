@@ -1,0 +1,18 @@
+PROBLEM,ALGORITHM,EXPANSIONS,GOAL TESTS,NEW NODES,PLAN LENGTH,TIME ELAPSED,COMMAND
+1,1,43,56,180,6,0.0302,python run_search.py -p 1 -s 1
+2,1,3343,4609,30509,9,12.9477,python run_search.py -p 2 -s 1
+3,1,14663,18098,129631,12,110.1266,python run_search.py -p 3 -s 1
+1,2,1458,1459,5960,6,0.9341,python run_search.py -p 1 -s 2
+2,2,-1,-1,-1,-1,-1,python run_search.py -p 2 -s 2
+3,2,-1,-1,-1,-1,-1,python run_search.py -p 3 -s 2
+1,3,21,22,84,20,0.0155,python run_search.py -p 1 -s 3
+2,3,624,625,5602,619,3.7341,python run_search.py -p 2 -s 3
+3,3,408,409,3364,392,1.8528,python run_search.py -p 3 -s 3
+1,4,101,271,414,50,0.10409,python run_search.py -p 1 -s 4
+2,4,-1,-1,-1,-1,-1,python run_search.py -p 2 -s 4
+3,4,-1,-1,-1,-1,-1,python run_search.py -p 3 -s 4
+1,5,55,57,224,6,0.3689,python run_search.py -p 1 -s 5
+2,5,4853,4855,44041,9,13.2434,python run_search.py -p 2 -s 5
+3,5,18223,18225,159618,12,57.4901,python run_search.py -p 3 -s 5
+,,,,,,,
+,,,,,,,
